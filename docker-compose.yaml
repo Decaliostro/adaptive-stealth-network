@@ -31,14 +31,15 @@ services:
     restart: unless-stopped
     environment:
       - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
+    entrypoint: /bin/sh
     command: >
-      sh -c "
+      -c "
       if [ -z \"$$CLOUDFLARE_TUNNEL_TOKEN\" ]; then
-        echo '[*] No tunnel token provided. Starting Quick Tunnel...'
-        cloudflared tunnel --url http://backend:8000
+        echo '[*] No tunnel token provided. Starting Quick Tunnel...';
+        /usr/local/bin/cloudflared tunnel --url http://backend:8000;
       else
-        echo '[*] Starting persistent tunnel with token...'
-        cloudflared tunnel --no-autoupdate run --token $$CLOUDFLARE_TUNNEL_TOKEN
+        echo '[*] Starting persistent tunnel with token...';
+        /usr/local/bin/cloudflared tunnel --no-autoupdate run --token $$CLOUDFLARE_TUNNEL_TOKEN;
       fi"
     depends_on:
       - backend
