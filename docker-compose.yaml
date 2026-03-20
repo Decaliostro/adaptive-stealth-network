@@ -1,0 +1,30 @@
+# =========================================================
+# Adaptive Stealth Network — Docker Compose
+# =========================================================
+
+version: "3.9"
+
+services:
+  backend:
+    build: .
+    container_name: asn-backend
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/asn_database.db
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  data:
+  logs:

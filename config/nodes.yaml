@@ -1,0 +1,74 @@
+# =========================================================
+# Adaptive Stealth Network — Node Configuration
+# =========================================================
+# Each node represents a server in the network.
+# Types: entry, relay, exit
+# Roles: master, slave
+# =========================================================
+
+nodes:
+  - id: "node-master-de"
+    name: "Master DE (Frankfurt)"
+    ip: "203.0.113.10"
+    port: 443
+    type: entry
+    role: master
+    location: "DE"
+    protocol: "vless"
+    transport: "quic"
+    uuid: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    server_name: "www.microsoft.com"
+    tls_enabled: true
+    capacity:
+      bandwidth_mbps: 500
+      cpu_score: 85
+    allowed_usage:
+      streaming: true
+      gaming: true
+      browsing: true
+    allow_relay: false
+    max_connections: 200
+
+  - id: "node-relay-nl"
+    name: "Relay NL (Amsterdam)"
+    ip: "198.51.100.20"
+    port: 443
+    type: relay
+    role: slave
+    location: "NL"
+    protocol: "vless"
+    transport: "quic"
+    uuid: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+    server_name: "www.google.com"
+    tls_enabled: true
+    capacity:
+      bandwidth_mbps: 200
+      cpu_score: 60
+    allowed_usage:
+      streaming: true
+      gaming: false
+      browsing: true
+    allow_relay: true
+    max_connections: 100
+
+  - id: "node-exit-us"
+    name: "Exit US (New York)"
+    ip: "192.0.2.30"
+    port: 443
+    type: exit
+    role: slave
+    location: "US"
+    protocol: "vless"
+    transport: "quic"
+    uuid: "c3d4e5f6-a7b8-9012-cdef-123456789012"
+    server_name: "www.apple.com"
+    tls_enabled: true
+    capacity:
+      bandwidth_mbps: 1000
+      cpu_score: 90
+    allowed_usage:
+      streaming: true
+      gaming: true
+      browsing: true
+    allow_relay: false
+    max_connections: 300

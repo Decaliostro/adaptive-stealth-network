@@ -1,0 +1,65 @@
+# =========================================================
+# Adaptive Stealth Network — Traffic Segmentation Rules
+# =========================================================
+# Defines requirements and routing preferences
+# for each traffic type.
+# =========================================================
+
+traffic_types:
+
+  streaming:
+    description: "Video/audio streaming (Netflix, YouTube, Spotify)"
+    requirements:
+      min_throughput_mbps: 10.0
+      max_latency_ms: 300
+      max_packet_loss_percent: 5.0
+    preference: "throughput"
+    preferred_node_traits:
+      - high_bandwidth
+      - high_cpu
+    priority: 2
+
+  gaming:
+    description: "Online gaming, real-time multiplayer"
+    requirements:
+      min_throughput_mbps: 1.0
+      max_latency_ms: 80
+      max_packet_loss_percent: 2.0
+    preference: "latency"
+    preferred_node_traits:
+      - closest_location
+      - lowest_latency
+    priority: 1
+
+  browsing:
+    description: "General web browsing, social media"
+    requirements:
+      min_throughput_mbps: 1.0
+      max_latency_ms: 500
+      max_packet_loss_percent: 10.0
+    preference: "balanced"
+    preferred_node_traits:
+      - any_stable
+    priority: 3
+
+  api:
+    description: "API calls, webhooks, lightweight data"
+    requirements:
+      min_throughput_mbps: 0.5
+      max_latency_ms: 200
+      max_packet_loss_percent: 3.0
+    preference: "stability"
+    preferred_node_traits:
+      - low_error_rate
+      - stable_connection
+    priority: 2
+
+# =========================================================
+# Default assignment when traffic type is unknown
+# =========================================================
+default:
+  preference: "balanced"
+  requirements:
+    min_throughput_mbps: 1.0
+    max_latency_ms: 500
+    max_packet_loss_percent: 10.0

@@ -1,0 +1,48 @@
+# =========================================================
+# Adaptive Stealth Network — Global Settings
+# =========================================================
+
+# Backend API connection
+backend_url: "http://127.0.0.1:8000"
+
+# Main control loop interval (seconds)
+loop_interval: 5
+
+# Scoring weights (lower composite score = better route)
+scoring_weights:
+  latency: 0.4
+  packet_loss: 2.0
+  throughput: -0.3     # negative: higher throughput decreases score
+  error_count: 100.0
+
+# Route switching
+cooldown_sec: 30            # Min seconds between switches per traffic type
+score_threshold: 15.0       # Min score improvement to trigger switch
+
+# Recovery (blocked routes)
+recovery_min_interval: 60   # Min seconds between recovery cycles
+recovery_max_interval: 120  # Max seconds between recovery cycles
+recovery_max_retries: 5     # Max retries before permanent block
+
+# Anti-DPI
+anti_dpi:
+  min_jitter_ms: 10
+  max_jitter_ms: 50
+  switch_limit_per_minute: 4
+
+# Transport fallback
+transport:
+  max_quic_failures: 3      # QUIC failures before TCP fallback
+  max_tcp_failures: 5       # TCP failures before port rotation
+
+# Sing-box
+singbox_binary: "sing-box"
+singbox_config_dir: "/tmp/asn_singbox"
+listen_port: 10808
+
+# Scheduler (backend metrics collection)
+scheduler_interval_sec: 30
+
+# Logging
+log_level: "INFO"
+log_file: "logs/asn.log"
