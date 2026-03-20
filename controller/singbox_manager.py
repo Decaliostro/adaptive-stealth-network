@@ -96,8 +96,16 @@ class SingboxManager:
         if protocol == "vless":
             outbound["uuid"] = uuid or "00000000-0000-0000-0000-000000000000"
             outbound["flow"] = "xtls-rprx-vision"
+        elif protocol == "trojan":
+            outbound["password"] = uuid or "password"
+        elif protocol == "shadowsocks":
+            outbound["method"] = "aes-256-gcm"
+            outbound["password"] = uuid or "password"
+        elif protocol == "mieru":
+            outbound["username"] = "user"
+            outbound["password"] = uuid or "password"
 
-        if tls_enabled:
+        if tls_enabled and protocol not in ["shadowsocks", "mieru"]:
             tls_config: dict[str, Any] = {
                 "enabled": True,
                 "server_name": server_name or server,
@@ -238,6 +246,75 @@ class SingboxManager:
 
         return config
 
+    def generate_server_config(
+        self,
+        nodes: list[Any],
+        users: list[Any],
+    ) -> dict[str, Any]:
+        """
+        Generate a Sing-box server configuration for Master/Slave nodes.
+        Hooks up inbounds for VLESS, Trojan, Mieru, Shadowsocks with Reality.
+        """
+        config: dict[str, Any] = {
+            "log": {"level": "info", "timestamp": True},
+            "inbounds": [],
+            "outbounds": [{"type": "direct"}],
+            "route": {"rules": []}
+        }
+        
+        active_users = [u for u in users if getattr(u, "is_active", True)]
+
+        for node in nodes:
+            # We only generate server inbounds for active nodes assigned to this host
+            if not getattr(node, "is_active", True):
+                continue
+                
+            protocol = getattr(node, "protocol", "vless")
+            port = getattr(node, "port", 443)
+            
+            inbound: dict[str, Any] = {
+                "type": protocol,
+                "tag": f"inbound_{node.id}",
+                "listen": "::",
+                "listen_port": port,
+            }
+
+            # Inject User Authentication
+            if protocol == "vless":
+                inbound["users"] = [{"name": u.username, "uuid": u.client_uuid, "flow": "xtls-rprx-vision"} for u in active_users]
+            elif protocol == "trojan":
+                inbound["users"] = [{"name": u.username, "password": u.client_uuid} for u in active_users]
+            elif protocol == "mieru":
+                inbound["users"] = [{"username": u.username, "password": u.client_uuid} for u in active_users]
+            elif protocol == "shadowsocks":
+                inbound["method"] = "aes-256-gcm"
+                inbound["users"] = [{"name": u.username, "password": u.client_uuid} for u in active_users]
+
+            # Inject TLS / Reality
+            if getattr(node, "tls_enabled", True) and protocol not in ["shadowsocks", "mieru"]:
+                inbound["tls"] = {
+                    "enabled": True,
+                    "server_name": getattr(node, "ip", "localhost"),
+                    "reality": {
+                        "enabled": True,
+                        "handshake": {
+                            "server": "dl.google.com"
+                        },
+                        "private_key": "YOUR_REALITY_PRIVATE_KEY", # Configurable later
+                        "short_id": ["0123456789abcdef"]
+                    }
+                }
+
+            # Inject Transport
+            transport_val = getattr(node, "transport", "tcp")
+            transport_str = getattr(transport_val, "value", str(transport_val))
+            if transport_str == "quic":
+                inbound["transport"] = {"type": "quic"}
+                
+            config["inbounds"].append(inbound)
+
+        return config
+
     def write_config(
         self,
         config: dict[str, Any],
@@ -287,7 +364,7 @@ class SingboxManager:
                 stderr=subprocess.PIPE,
             )
             self._current_config_path = path
-            pid = self.process.pid if self.process else -1
+            pid = self.process.pid if self.process else -1  # type: ignore
             logger.info(
                 "✅ Sing-box started (PID=%d) with config %s",
                 pid, path,
@@ -308,7 +385,7 @@ class SingboxManager:
         """Stop the running Sing-box process."""
         proc = self.process
         if proc is not None and proc.poll() is None:
-            logger.info("Stopping Sing-box (PID=%d)", proc.pid)
+            logger.info("Stopping Sing-box (PID=%d)", proc.pid)  # type: ignore
             proc.terminate()
             try:
                 proc.wait(timeout=5)
@@ -339,9 +416,9 @@ class SingboxManager:
             True if signal was sent successfully.
         """
         proc = self.process
-        if proc is not None and proc.poll() is None:
+        if proc and proc.poll() is None:
             try:
-                os.kill(proc.pid, signal.SIGHUP)
+                os.kill(proc.pid, signal.SIGHUP)  # type: ignore
                 logger.info("Sent SIGHUP to Sing-box (PID=%d)", proc.pid)
                 return True
             except OSError as exc:
