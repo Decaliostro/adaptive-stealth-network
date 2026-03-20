@@ -28,6 +28,12 @@ Client ──→ Entry Node ──→ Relay Node ──→ Exit Node ──→ I
 
 ## 🚀 Быстрый старт
 
+### Установка одной строкой (One-Line Installer)
+Самый быстрый способ развернуть контроллер на чистом сервере (настроит Docker, скачает репозиторий и запустит Web-панель):
+```bash
+bash <(curl -sL https://raw.githubusercontent.com/Decaliostro/adaptive-stealth-network/main/install.sh)
+```
+
 ### Требования
 
 - Python 3.10+
