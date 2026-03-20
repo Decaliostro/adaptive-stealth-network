@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Adaptive Stealth Network - One-Line Installer
-# Usage: bash <(curl -sL https://raw.githubusercontent.com/Decaliostro/adaptive-stealth-network/main/install.sh)
+# Usage: bash <(curl -sL https://raw.githubusercontent.com/Decaliostro/adaptive-stealth-network/master/install.sh)
 
 set -e
 
