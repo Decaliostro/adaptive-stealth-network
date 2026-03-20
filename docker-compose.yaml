@@ -2,8 +2,6 @@
 # Adaptive Stealth Network — Docker Compose
 # =========================================================
 
-version: "3.9"
-
 services:
   backend:
     build: .
@@ -29,7 +27,7 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: asn-tunnel
     restart: unless-stopped
-    command: tunnel --url http://backend:8000
+    command: tunnel --url http://asn-backend:8000
     depends_on:
       - backend
 
