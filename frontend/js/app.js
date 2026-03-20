@@ -2,7 +2,7 @@ const { createApp, ref, computed, onMounted } = Vue;
 
 const API_BASE = '/api';
 
-createApp({
+const app = createApp({
     setup() {
         const currentTab = ref('dashboard');
         
@@ -105,7 +105,6 @@ createApp({
 
         const submitUser = async () => {
             try {
-                // filter nulls to avoid passing empty strings
                 const payload = { ...userForm.value };
                 if(!payload.data_limit_gb) delete payload.data_limit_gb;
                 if(!payload.speed_limit_mbps) delete payload.speed_limit_mbps;
@@ -186,4 +185,8 @@ createApp({
             submitUser, deleteUser, showQRCode, copyToClipboard, saveSettings
         };
     }
-}).mount('#app');
+});
+
+// Configure Vue to support Ionicons custom elements
+app.config.compilerOptions.isCustomElement = (tag) => tag.startsWith('ion-');
+app.mount('#app');
