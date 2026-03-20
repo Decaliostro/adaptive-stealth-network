@@ -190,6 +190,41 @@ class MetricsResponse(BaseModel):
 
 
 # ====================================================================
+# Users
+# ====================================================================
+
+class ClientUserCreate(BaseModel):
+    """Schema for creating a new user (POST /api/users)."""
+    username: str = Field(..., min_length=1, max_length=128)
+    data_limit_gb: Optional[float] = Field(None, ge=0)
+    speed_limit_mbps: Optional[float] = Field(None, ge=0)
+    expire_at: Optional[datetime] = None
+
+
+class ClientUserUpdate(BaseModel):
+    """Schema for updating a user (PATCH /api/users/{id})."""
+    data_limit_gb: Optional[float] = Field(None, ge=0)
+    speed_limit_mbps: Optional[float] = Field(None, ge=0)
+    is_active: Optional[bool] = None
+    expire_at: Optional[datetime] = None
+
+
+class ClientUserResponse(BaseModel):
+    """Schema for user responses."""
+    id: str
+    username: str
+    client_uuid: str
+    data_limit_gb: Optional[float]
+    data_used_bytes: float
+    speed_limit_mbps: Optional[float]
+    is_active: bool
+    expire_at: Optional[datetime]
+    created_at: datetime
+    
+    model_config = {"from_attributes": True}
+
+
+# ====================================================================
 # Health check
 # ====================================================================
 

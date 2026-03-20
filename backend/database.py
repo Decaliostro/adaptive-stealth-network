@@ -74,7 +74,7 @@ async def init_db() -> None:
     Called once during application startup via the FastAPI lifespan hook.
     """
     async with engine.begin() as conn:
-        from backend.models import Node, Route, MetricRecord  # noqa: F401
+        from backend.models import Node, Route, MetricRecord, ClientUser  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
 
 

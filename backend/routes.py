@@ -16,11 +16,16 @@ from itertools import product
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import PlainTextResponse
+import base64
+import json
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_db
 from backend.models import (
+    ClientUser,
     MetricRecord,
     Node,
     NodeRole,
@@ -30,6 +35,9 @@ from backend.models import (
     TransportType,
 )
 from backend.schemas import (
+    ClientUserCreate,
+    ClientUserResponse,
+    ClientUserUpdate,
     HealthResponse,
     MetricsCreate,
     MetricsResponse,
@@ -405,6 +413,130 @@ async def create_metric(
     await db.flush()
     await db.refresh(record)
     return record
+
+
+# ====================================================================
+# Users
+# ====================================================================
+
+@router.get("/users", response_model=List[ClientUserResponse])
+async def list_users(db: AsyncSession = Depends(get_db)) -> list:
+    """List all registered users."""
+    result = await db.execute(select(ClientUser))
+    return result.scalars().all()
+
+
+@router.post("/users", response_model=ClientUserResponse, status_code=201)
+async def create_user(
+    body: ClientUserCreate,
+    db: AsyncSession = Depends(get_db),
+) -> ClientUser:
+    """Create a new VPN user subscription."""
+    user = ClientUser(
+        id=str(uuid.uuid4()),
+        username=body.username,
+        client_uuid=str(uuid.uuid4()),
+        data_limit_gb=body.data_limit_gb,
+        speed_limit_mbps=body.speed_limit_mbps,
+        expire_at=body.expire_at,
+    )
+    db.add(user)
+    await db.flush()
+    await db.refresh(user)
+    return user
+
+
+@router.get("/users/{user_id}", response_model=ClientUserResponse)
+async def get_user(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> ClientUser:
+    """Get a single user by ID."""
+    user = await db.get(ClientUser, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+@router.patch("/users/{user_id}", response_model=ClientUserResponse)
+async def update_user(
+    user_id: str,
+    body: ClientUserUpdate,
+    db: AsyncSession = Depends(get_db),
+) -> ClientUser:
+    """Update user limits or state."""
+    user = await db.get(ClientUser, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    update_data = body.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(user, field, value)
+
+    await db.flush()
+    await db.refresh(user)
+    return user
+
+
+@router.delete("/users/{user_id}", status_code=204)
+async def delete_user(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Delete a user."""
+    user = await db.get(ClientUser, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    await db.delete(user)
+    await db.flush()
+
+
+# ====================================================================
+# Subscriptions
+# ====================================================================
+
+@router.get("/sub/{client_uuid}", response_class=PlainTextResponse)
+async def get_subscription(
+    client_uuid: str,
+    db: AsyncSession = Depends(get_db),
+) -> str:
+    """
+    Generate a base64 encoded subscription link for Sing-box/V2ray clients.
+    Contains URIs (vless://, mieru://) for all available entry nodes.
+    """
+    # 1. Verify user limits and active status
+    result = await db.execute(select(ClientUser).where(ClientUser.client_uuid == client_uuid))
+    user = result.scalar_one_or_none()
+    
+    if not user or not user.is_active:
+        raise HTTPException(status_code=404, detail="Subscription not found or inactive")
+
+    # Check expiration date
+    if user.expire_at and user.expire_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=403, detail="Subscription expired")
+        
+    # Check data limit
+    if user.data_limit_gb and (user.data_used_bytes / (1024**3)) >= user.data_limit_gb:
+        raise HTTPException(status_code=403, detail="Data limit exceeded")
+
+    # 2. Get active Entry nodes to construct access URIs
+    nodes_res = await db.execute(select(Node).where(Node.node_type == NodeType.ENTRY, Node.is_active == True))
+    entries = nodes_res.scalars().all()
+
+    lines = []
+    for node in entries:
+        if node.protocol == "vless":
+            uri = f"vless://{user.client_uuid}@{node.ip}:{node.port}?encryption=none&security=reality&sni={node.ip}&fp=chrome&type={node.transport.value}#ASN-{node.location}-{node.name}"
+            lines.append(uri)
+        elif node.protocol == "mieru":
+            uri = f"mieru://{user.username}:{user.client_uuid}@{node.ip}:{node.port}?transport=tcp#ASN-Mieru-{node.name}"
+            lines.append(uri)
+        else:
+            uri = f"{node.protocol}://{user.client_uuid}@{node.ip}:{node.port}#{node.name}"
+            lines.append(uri)
+
+    raw_sub = "\n".join(lines)
+    return base64.b64encode(raw_sub.encode('utf-8')).decode('utf-8')
 
 
 # ====================================================================

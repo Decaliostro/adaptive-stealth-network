@@ -184,6 +184,42 @@ class Route(Base):
 
 
 # ---------------------------------------------------------------------------
+# ClientUser
+# ---------------------------------------------------------------------------
+
+class ClientUser(Base):
+    """
+    Represents a VPN client subscription.
+
+    Attributes:
+        id:               Internal Unique identifier.
+        username:         Display name.
+        client_uuid:      UUID for VLESS/Reality authentication and sub URL.
+        data_limit_gb:    Traffic limit in GB (None = unlimited).
+        data_used_bytes:  Bytes used so far.
+        speed_limit_mbps: Bandwidth limit in Mbps (None = unlimited).
+        is_active:        Active block status.
+        expire_at:        Subscription expiration date.
+        created_at:       Timestamp of creation.
+    """
+
+    __tablename__ = "users"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    username = Column(String(128), unique=True, nullable=False)
+    client_uuid = Column(String(36), default=lambda: str(uuid.uuid4()))
+    data_limit_gb = Column(Float, nullable=True)
+    data_used_bytes = Column(Float, default=0.0)
+    speed_limit_mbps = Column(Float, nullable=True)
+    is_active = Column(Boolean, default=True)
+    expire_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def __repr__(self) -> str:
+        return f"<ClientUser(username={self.username!r}, active={self.is_active})>"
+
+
+# ---------------------------------------------------------------------------
 # MetricRecord
 # ---------------------------------------------------------------------------
 
