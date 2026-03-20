@@ -97,9 +97,11 @@ async def init_db() -> None:
                 "tls_fragment": "VARCHAR(64)"
             }
             
+            from sqlalchemy import text
             for col, col_type in missing_cols.items():
                 if col not in columns:
-                    connection.execute(f"ALTER TABLE nodes ADD COLUMN {col} {col_type}")
+                    print(f"DEBUG: Adding column '{col}' to 'nodes' table...")
+                    connection.execute(text(f"ALTER TABLE nodes ADD COLUMN {col} {col_type}"))
 
         await conn.run_sync(migrate_nodes_table)
 
