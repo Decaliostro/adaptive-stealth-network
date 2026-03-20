@@ -9,6 +9,8 @@ switchable to PostgreSQL via DATABASE_URL environment variable.
 import os
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import select, inspect, text
+from typing import AsyncGenerator
 
 # ---------------------------------------------------------------------------
 # Database URL
@@ -45,7 +47,7 @@ class Base(DeclarativeBase):
 # ---------------------------------------------------------------------------
 # Dependency for FastAPI
 # ---------------------------------------------------------------------------
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Yield an async database session for use in FastAPI dependency injection.
 
@@ -80,7 +82,6 @@ async def init_db() -> None:
         # Migration: Add missing columns to 'nodes' table if they don't exist
         # This is a safe way to handle schema updates without full Alembic migrations.
         def migrate_nodes_table(connection):
-            from sqlalchemy import inspect
             inspector = inspect(connection)
             columns = [c["name"] for c in inspector.get_columns("nodes")]
             
@@ -97,7 +98,6 @@ async def init_db() -> None:
                 "tls_fragment": "VARCHAR(64)"
             }
             
-            from sqlalchemy import text
             for col, col_type in missing_cols.items():
                 if col not in columns:
                     print(f"DEBUG: Adding column '{col}' to 'nodes' table...")
@@ -107,7 +107,6 @@ async def init_db() -> None:
 
     # Auto-register master node if empty
     async with async_session() as session:
-        from sqlalchemy import select
         from backend.models import Node, NodeType, NodeRole
         import uuid
         import socket
