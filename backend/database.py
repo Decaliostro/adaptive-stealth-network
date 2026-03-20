@@ -10,7 +10,10 @@ import os
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import select, inspect, text
-from typing import AsyncGenerator
+from typing import AsyncGenerator, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .models import Node, Route, MetricRecord, ClientUser, NodeType, NodeRole
 
 # ---------------------------------------------------------------------------
 # Database URL
@@ -76,7 +79,7 @@ async def init_db() -> None:
     Called once during application startup via the FastAPI lifespan hook.
     """
     async with engine.begin() as conn:
-        from backend.models import Node, Route, MetricRecord, ClientUser, NodeType, NodeRole  # noqa: F401
+        from .models import Node, Route, MetricRecord, ClientUser, NodeType, NodeRole  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
 
         # Migration: Add missing columns to 'nodes' table if they don't exist
@@ -107,7 +110,7 @@ async def init_db() -> None:
 
     # Auto-register master node if empty
     async with async_session() as session:
-        from backend.models import Node, NodeType, NodeRole
+        from .models import Node, NodeType, NodeRole
         import uuid
         import socket
 
