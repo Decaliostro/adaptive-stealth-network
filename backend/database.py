@@ -77,6 +77,32 @@ async def init_db() -> None:
         from backend.models import Node, Route, MetricRecord, ClientUser, NodeType, NodeRole  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
 
+        # Migration: Add missing columns to 'nodes' table if they don't exist
+        # This is a safe way to handle schema updates without full Alembic migrations.
+        def migrate_nodes_table(connection):
+            from sqlalchemy import inspect
+            inspector = inspect(connection)
+            columns = [c["name"] for c in inspector.get_columns("nodes")]
+            
+            missing_cols = {
+                "allow_streaming": "BOOLEAN DEFAULT 1",
+                "allow_gaming": "BOOLEAN DEFAULT 1",
+                "allow_browsing": "BOOLEAN DEFAULT 1",
+                "transport": "VARCHAR(32) DEFAULT 'quic'",
+                "protocol": "VARCHAR(32) DEFAULT 'vless'",
+                "tls_enabled": "BOOLEAN DEFAULT 1",
+                "reality_public_key": "VARCHAR(256)",
+                "reality_short_id": "VARCHAR(16)",
+                "reality_sni": "VARCHAR(256)",
+                "tls_fragment": "VARCHAR(64)"
+            }
+            
+            for col, col_type in missing_cols.items():
+                if col not in columns:
+                    connection.execute(f"ALTER TABLE nodes ADD COLUMN {col} {col_type}")
+
+        await conn.run_sync(migrate_nodes_table)
+
     # Auto-register master node if empty
     async with async_session() as session:
         from sqlalchemy import select
