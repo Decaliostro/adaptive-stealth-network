@@ -21,6 +21,7 @@ COPY backend/ ./backend/
 COPY controller/ ./controller/
 COPY config/ ./config/
 COPY utils/ ./utils/
+COPY frontend/ ./frontend/
 
 # Create directories
 RUN mkdir -p /app/logs /app/data
