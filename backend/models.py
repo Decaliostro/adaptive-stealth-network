@@ -113,6 +113,10 @@ class Node(Base):
     transport = Column(Enum(TransportType), default=TransportType.QUIC)
     protocol = Column(String(32), default="vless")  # vless, shadowsocks, etc.
     tls_enabled = Column(Boolean, default=True)
+    reality_public_key = Column(String(256), nullable=True)
+    reality_short_id = Column(String(16), nullable=True)
+    reality_sni = Column(String(256), nullable=True)
+    tls_fragment = Column(String(64), nullable=True)  # e.g. "1-500"
 
     # Status
     is_active = Column(Boolean, default=True)

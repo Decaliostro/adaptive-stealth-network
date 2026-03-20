@@ -16,8 +16,11 @@ const app = createApp({
         const showNodeModal = ref(false);
         const form = ref({
             name: '', location: '', ip: '', port: 443, 
-            role: 'slave', node_type: 'entry', 
-            bandwidth_mbps: 1000, transport: 'quic'
+            role: 'slave', node_type: 'entry', protocol: 'vless',
+            transport: 'quic', tls_enabled: true,
+            reality_public_key: '', reality_short_id: '',
+            reality_sni: '', tls_fragment: '',
+            allow_streaming: true, allow_gaming: true, allow_browsing: true
         });
 
         const showUserModal = ref(false);
@@ -72,16 +75,20 @@ const app = createApp({
             try {
                 await axios.patch(`${API_BASE}/settings`, settings.value);
                 alert("Settings saved successfully.");
-            } catch (e) {
-                alert("Failed to save settings.");
-            }
+            } catch (e) { alert("Failed to save settings."); }
         };
 
         const submitNode = async () => {
             try {
                 await axios.post(`${API_BASE}/nodes`, form.value);
                 showNodeModal.value = false;
-                form.value = {name: '', location: '', ip: '', port: 443, role: 'slave', node_type: 'entry', bandwidth_mbps: 1000, transport: 'quic'};
+                form.value = {
+                    name: '', location: '', ip: '', port: 443, role: 'slave', 
+                    node_type: 'entry', protocol: 'vless', transport: 'quic',
+                    tls_enabled: true, reality_public_key: '', 
+                    reality_short_id: '', reality_sni: '', tls_fragment: '',
+                    allow_streaming: true, allow_gaming: true, allow_browsing: true
+                };
                 fetchData();
             } catch(e) {
                 alert("Failed to add node: " + (e.response?.data?.detail || e.message));
@@ -107,7 +114,6 @@ const app = createApp({
             try {
                 const payload = { ...userForm.value };
                 if(!payload.data_limit_gb) delete payload.data_limit_gb;
-                if(!payload.speed_limit_mbps) delete payload.speed_limit_mbps;
                 if(!payload.expire_at) delete payload.expire_at;
 
                 await axios.post(`${API_BASE}/users`, payload);
@@ -130,22 +136,29 @@ const app = createApp({
         const showQRCode = async (u) => {
             try {
                 const res = await axios.get(`/api/sub/${u.client_uuid}`);
-                qrCodeData.value = atob(res.data); // decode base64
+                qrCodeData.value = atob(res.data);
                 
+                // Ensure DOM is updated before qrcodejs runs
                 setTimeout(() => {
-                    document.getElementById('qrcode').innerHTML = '';
-                    new QRCode(document.getElementById('qrcode'), {
-                        text: qrCodeData.value,
-                        width: 180,
-                        height: 180,
-                        colorDark : "#000000",
-                        colorLight : "#ffffff",
-                        correctLevel : QRCode.CorrectLevel.L
-                    });
-                }, 100);
+                    const el = document.getElementById('qrcode');
+                    if (el) {
+                        el.innerHTML = '';
+                        new QRCode(el, {
+                            text: qrCodeData.value,
+                            width: 180, height: 180,
+                            colorDark : "#000000", colorLight : "#ffffff",
+                            correctLevel : QRCode.CorrectLevel.L
+                        });
+                    }
+                }, 200);
             } catch(e) {
-                alert("Cannot generate QR code: " + (e.response?.data?.detail || e.message));
+                alert("Cannot generate config: " + (e.response?.data?.detail || e.message));
             }
+        };
+
+        const copySubLink = (u) => {
+            const url = `${window.location.origin}/api/sub/${u.client_uuid}`;
+            copyToClipboard(url);
         };
 
         const copyToClipboard = async (text) => {
@@ -173,7 +186,7 @@ const app = createApp({
         onMounted(() => {
             fetchData();
             fetchSettings();
-            setInterval(fetchData, 10000); // Poll every 10s
+            setInterval(fetchData, 30000); // Poll every 30s
         });
 
         return {
@@ -182,11 +195,10 @@ const app = createApp({
             showNodeModal, form,
             showUserModal, userForm, qrCodeData,
             submitNode, deleteNode, toggleNodeState, generateRoutes, getNodeName,
-            submitUser, deleteUser, showQRCode, copyToClipboard, saveSettings
+            submitUser, deleteUser, showQRCode, copySubLink, copyToClipboard, saveSettings
         };
     }
 });
 
-// Configure Vue to support Ionicons custom elements
 app.config.compilerOptions.isCustomElement = (tag) => tag.startsWith('ion-');
 app.mount('#app');

@@ -36,6 +36,10 @@ class NodeCreate(BaseModel):
     transport: str = Field("quic", description="Transport protocol: quic or tcp")
     protocol: str = Field("vless", description="Proxy protocol: vless, shadowsocks, etc.")
     tls_enabled: bool = Field(True, description="Whether TLS is enabled")
+    reality_public_key: Optional[str] = Field(None, description="Reality Public Key")
+    reality_short_id: Optional[str] = Field(None, description="Reality Short ID")
+    reality_sni: Optional[str] = Field(None, description="Reality SNI")
+    tls_fragment: Optional[str] = Field(None, description="TLS Fragmentation (e.g. 1-500)")
 
     @field_validator("node_type")
     @classmethod
@@ -82,6 +86,10 @@ class NodeUpdate(BaseModel):
     max_connections: Optional[int] = Field(None, ge=1)
     transport: Optional[str] = None
     is_active: Optional[bool] = None
+    reality_public_key: Optional[str] = None
+    reality_short_id: Optional[str] = None
+    reality_sni: Optional[str] = None
+    tls_fragment: Optional[str] = None
 
 
 class NodeResponse(BaseModel):
@@ -104,6 +112,10 @@ class NodeResponse(BaseModel):
     transport: str
     protocol: str
     tls_enabled: bool
+    reality_public_key: Optional[str]
+    reality_short_id: Optional[str]
+    reality_sni: Optional[str]
+    tls_fragment: Optional[str]
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime]

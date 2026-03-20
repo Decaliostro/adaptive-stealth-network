@@ -12,422 +12,300 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
-<body id="app">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="brand">
-            <ion-icon name="shield-half-outline" style="vertical-align: middle;"></ion-icon> 
-            ASN Panel
-        </div>
-        <nav class="nav-menu">
-            <div class="nav-item" :class="{active: currentTab === 'dashboard'}" @click="currentTab = 'dashboard'">
-                <ion-icon name="grid-outline"></ion-icon> Dashboard
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <ion-icon name="shield-half-outline" style="vertical-align: middle;"></ion-icon> 
+                ASN Panel
             </div>
-            <div class="nav-item" :class="{active: currentTab === 'nodes'}" @click="currentTab = 'nodes'">
-                <ion-icon name="server-outline"></ion-icon> Nodes (Servers)
-            </div>
-            <div class="nav-item" :class="{active: currentTab === 'routes'}" @click="currentTab = 'routes'">
-                <ion-icon name="git-network-outline"></ion-icon> Route Paths
-            </div>
-            <div class="nav-item" :class="{active: currentTab === 'metrics'}" @click="currentTab = 'metrics'">
-                <ion-icon name="pulse-outline"></ion-icon> Network Metrics
-            </div>
-            <div class="nav-item" :class="{active: currentTab === 'users'}" @click="currentTab = 'users'">
-                <ion-icon name="people-outline"></ion-icon> VPN Users
-            </div>
-            <div class="nav-item" :class="{active: currentTab === 'settings'}" @click="currentTab = 'settings'">
-                <ion-icon name="settings-outline"></ion-icon> System Settings
-            </div>
-        </nav>
-    </aside>
-
-    <!-- Main View -->
-    <main class="main-content">
-        <header>
-            <h1>{{ tabTitle }}</h1>
-            <div class="status-badge" :class="{offline: !health.ok}">
-                {{ health.ok ? 'Network Active' : 'Backend Offline' }}
-            </div>
-        </header>
-
-        <!-- DASHBOARD TAB -->
-        <div v-show="currentTab === 'dashboard'">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-title">Total Nodes</div>
-                    <div class="stat-value">{{ nodes.length }}</div>
+            <nav class="nav-menu">
+                <div class="nav-item" :class="{active: currentTab === 'dashboard'}" @click="currentTab = 'dashboard'">
+                    <ion-icon name="grid-outline"></ion-icon> Dashboard
                 </div>
-                <div class="stat-card">
-                    <div class="stat-title">Active Routes</div>
-                    <div class="stat-value">{{ routes.length }}</div>
+                <div class="nav-item" :class="{active: currentTab === 'nodes'}" @click="currentTab = 'nodes'">
+                    <ion-icon name="server-outline"></ion-icon> Nodes (Servers)
                 </div>
-                <div class="stat-card">
-                    <div class="stat-title">Latest Metrics Recorded</div>
-                    <div class="stat-value">{{ metrics.length }}</div>
+                <div class="nav-item" :class="{active: currentTab === 'routes'}" @click="currentTab = 'routes'">
+                    <ion-icon name="git-network-outline"></ion-icon> Route Paths
+                </div>
+                <div class="nav-item" :class="{active: currentTab === 'metrics'}" @click="currentTab = 'metrics'">
+                    <ion-icon name="pulse-outline"></ion-icon> Network Metrics
+                </div>
+                <div class="nav-item" :class="{active: currentTab === 'users'}" @click="currentTab = 'users'">
+                    <ion-icon name="people-outline"></ion-icon> VPN Users
+                </div>
+                <div class="nav-item" :class="{active: currentTab === 'settings'}" @click="currentTab = 'settings'">
+                    <ion-icon name="settings-outline"></ion-icon> System Settings
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main View -->
+        <main class="main-content">
+            <header>
+                <h1>{{ tabTitle }}</h1>
+                <div class="status-badge" :class="{offline: !health.ok}">
+                    {{ health.ok ? 'Network Active' : 'Backend Offline' }}
+                </div>
+            </header>
+
+            <!-- DASHBOARD TAB -->
+            <div v-show="currentTab === 'dashboard'">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-title">Total Nodes</div>
+                        <div class="stat-value">{{ nodes.length }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Active Routes</div>
+                        <div class="stat-value">{{ routes.length }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Latest Metrics</div>
+                        <div class="stat-value">{{ metrics.length }}</div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- NODES TAB -->
-        <div v-show="currentTab === 'nodes'" class="panel">
-            <div class="panel-header">
-                <div class="panel-title">Server Nodes</div>
-                <button class="btn" @click="showNodeModal = true">
-                    <ion-icon name="add"></ion-icon> Add Node
-                </button>
-            </div>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>IP : Port</th>
-                            <th>Role</th>
-                            <th>Type</th>
-                            <th>Bandwidth</th>
-                            <th>Active</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="node in nodes" :key="node.id">
-                            <td><strong>{{ node.name }}</strong><br><small style="color:var(--text-muted)">{{ node.location }}</small></td>
-                            <td>{{ node.ip }}:{{ node.port }}<br><small style="color:var(--text-muted)">{{ node.transport }}/{{ node.protocol }}</small></td>
-                            <td><span class="badge" :class="'badge-' + node.role">{{ node.role }}</span></td>
-                            <td><span class="badge" :class="'badge-' + node.node_type">{{ node.node_type }}</span></td>
-                            <td>{{ node.bandwidth_mbps }} Mbps</td>
-                            <td>
-                                <label class="switch">
-                                    <input type="checkbox" :checked="node.is_active" @change="toggleNodeState(node)">
-                                    <span class="slider"></span>
-                                </label>
-                            </td>
-                            <td>
-                                <button class="btn btn-danger" @click="deleteNode(node.id)" style="padding: 0.4rem 0.6rem;">
-                                    <ion-icon name="trash"></ion-icon>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr v-if="nodes.length === 0">
-                            <td colspan="7" style="text-align:center; color:var(--text-muted)">No nodes found. Create one.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ROUTES TAB -->
-        <div v-show="currentTab === 'routes'" class="panel">
-            <div class="panel-header">
-                <div class="panel-title">Calculated Routes</div>
-                <button class="btn" @click="generateRoutes">
-                    <ion-icon name="git-merge"></ion-icon> Auto-Generate Routes
-                </button>
-            </div>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Hop Chain</th>
-                            <th>Type</th>
-                            <th>Score</th>
-                            <th>State</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="route in routes" :key="route.id">
-                            <td>
-                                {{ getNodeName(route.entry_node_id) }} 
-                                <span v-if="route.relay_node_id"> → {{ getNodeName(route.relay_node_id) }}</span> 
-                                → {{ getNodeName(route.exit_node_id) }}
-                            </td>
-                            <td>{{ route.is_single_node ? 'Single' : 'Multi-hop' }}</td>
-                            <td>{{ (route.score || 0).toFixed(2) }}</td>
-                            <td>
-                                <div style="display:flex; align-items:center; gap:0.5rem">
-                                    <span style="font-size:1.5rem; color:var(--accent-success)" v-if="route.state=='healthy'">•</span>
-                                    <span style="font-size:1.5rem; color:var(--accent-danger)" v-if="route.state=='blocked'">•</span>
-                                    <span style="font-size:1.5rem; color:var(--accent-warning)" v-if="route.state=='degraded'">•</span>
-                                    {{ route.state.toUpperCase() }}
-                                </div>
-                            </td>
-                        </tr>
-                        <tr v-if="routes.length === 0">
-                            <td colspan="4" style="text-align:center; color:var(--text-muted)">No routes calculated yet.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- METRICS TAB -->
-        <div v-show="currentTab === 'metrics'" class="panel">
-            <div class="panel-header">
-                <div class="panel-title">Recent Metric Pings</div>
-            </div>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Target</th>
-                            <th>Latency</th>
-                            <th>Loss %</th>
-                            <th>Errors</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="metric in metrics" :key="metric.id">
-                            <td>{{ new Date(metric.recorded_at).toLocaleTimeString() }}</td>
-                            <td>
-                                <span v-if="metric.node_id">Node: {{ getNodeName(metric.node_id) }}</span>
-                                <span v-if="metric.route_id">Route: {{ metric.route_id.split('-')[0] }}</span>
-                            </td>
-                            <td>{{ metric.latency_ms }} ms</td>
-                            <td>{{ metric.packet_loss_percent }}%</td>
-                            <td :style="{color: metric.error_count > 0 ? 'var(--accent-danger)' : ''}">{{ metric.error_count }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- USERS TAB -->
-        <div v-show="currentTab === 'users'" class="panel">
-            <div class="panel-header">
-                <div class="panel-title">Client Subscriptions</div>
-                <button class="btn" @click="showUserModal = true">
-                    <ion-icon name="person-add"></ion-icon> Add User
-                </button>
-            </div>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Username</th>
-                            <th>Data Usage</th>
-                            <th>Speed Limit</th>
-                            <th>Status</th>
-                            <th>Expiry</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="u in users" :key="u.id">
-                            <td>
-                                <strong>{{ u.username }}</strong><br>
-                                <small style="color:var(--text-muted)">{{ u.client_uuid.split('-')[0] }}...</small>
-                            </td>
-                            <td>
-                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size: 0.75rem;">
-                                    <span>{{ ((u.data_used_bytes || 0) / (1024*1024*1024)).toFixed(2) }} GB</span>
-                                    <span>{{ u.data_limit_gb ? u.data_limit_gb + ' GB' : '∞' }}</span>
-                                </div>
-                                <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
-                                    <div :style="{ width: u.data_limit_gb ? Math.min(100, (u.data_used_bytes/(1024*1024*1024) / u.data_limit_gb * 100)) + '%' : '0%', background: 'var(--accent-primary)', height: '100%' }"></div>
-                                </div>
-                            </td>
-                            <td>{{ u.speed_limit_mbps ? u.speed_limit_mbps + ' Mbps' : '∞' }}</td>
-                            <td>
-                                <span class="badge" :class="u.is_active ? 'badge-entry' : 'badge-exit'">
-                                    {{ u.is_active ? 'Active' : 'Disabled' }}
-                                </span>
-                            </td>
-                            <td>{{ u.expire_at ? new Date(u.expire_at).toLocaleDateString() : 'Never' }}</td>
-                            <td>
-                                <div style="display:flex; gap:0.5rem">
-                                    <button class="btn" style="padding: 0.4rem 0.6rem; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59,130,246,0.3);" @click="showQRCode(u)">
-                                        <ion-icon name="qr-code"></ion-icon>
+            <!-- NODES TAB -->
+            <div v-show="currentTab === 'nodes'" class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Server Nodes</div>
+                    <button class="btn" @click="showNodeModal = true">
+                        <ion-icon name="add-outline"></ion-icon> Add Node
+                    </button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>IP : Port</th>
+                                <th>Role</th>
+                                <th>Type</th>
+                                <th>Protocol</th>
+                                <th>Active</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="node in nodes" :key="node.id">
+                                <td><strong>{{ node.name }}</strong><br><small>{{ node.location }}</small></td>
+                                <td>{{ node.ip }}:{{ node.port }}<br><small>{{ node.transport }}</small></td>
+                                <td><span class="badge" :class="'badge-' + node.role">{{ node.role }}</span></td>
+                                <td><span class="badge" :class="'badge-' + node.node_type">{{ node.node_type }}</span></td>
+                                <td>{{ node.protocol }} <span v-if="node.reality_public_key">(Reality)</span></td>
+                                <td>
+                                    <label class="switch">
+                                        <input type="checkbox" :checked="node.is_active" @change="toggleNodeState(node)">
+                                        <span class="slider"></span>
+                                    </label>
+                                </td>
+                                <td>
+                                    <button class="btn btn-danger" @click="deleteNode(node.id)" style="padding: 0.4rem 0.6rem;">
+                                        <ion-icon name="trash-outline"></ion-icon>
                                     </button>
-                                    <button class="btn btn-danger" style="padding: 0.4rem 0.6rem;" @click="deleteUser(u.id)">
-                                        <ion-icon name="trash"></ion-icon>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr v-if="users.length === 0">
-                            <td colspan="6" style="text-align:center; color:var(--text-muted)">No users found. Create one to get started.</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
 
-        <!-- SETTINGS TAB -->
-        <div v-show="currentTab === 'settings'" class="panel">
-            <div class="panel-header">
-                <div class="panel-title">System Settings</div>
-                <button class="btn" @click="saveSettings">
-                    <ion-icon name="save"></ion-icon> Save Configuration
-                </button>
+            <!-- ROUTES TAB -->
+            <div v-show="currentTab === 'routes'" class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Calculated Routes</div>
+                    <button class="btn" @click="generateRoutes">
+                        <ion-icon name="git-merge-outline"></ion-icon> Auto-Generate
+                    </button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Hop Chain</th>
+                                <th>Type</th>
+                                <th>Score</th>
+                                <th>State</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="route in routes" :key="route.id">
+                                <td>
+                                    {{ getNodeName(route.entry_node_id) }} 
+                                    <span v-if="route.relay_node_id"> → {{ getNodeName(route.relay_node_id) }}</span> 
+                                    → {{ getNodeName(route.exit_node_id) }}
+                                </td>
+                                <td>{{ route.is_single_node ? 'Single' : 'Multi-hop' }}</td>
+                                <td>{{ (route.score || 0).toFixed(2) }}</td>
+                                <td><span class="status-dot" :class="route.state"></span> {{ route.state }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div class="panel-body" style="padding: 1.5rem">
-                <div class="form-row">
+
+            <!-- USERS TAB -->
+            <div v-show="currentTab === 'users'" class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Client Subscriptions</div>
+                    <button class="btn" @click="showUserModal = true">
+                        <ion-icon name="person-add-outline"></ion-icon> Add User
+                    </button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Usage</th>
+                                <th>Status</th>
+                                <th>Expiry</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="u in users" :key="u.id">
+                                <td><strong>{{ u.username }}</strong></td>
+                                <td>{{ ((u.data_used_bytes || 0) / (1024*1024*1024)).toFixed(2) }} GB / {{ u.data_limit_gb || '∞' }}</td>
+                                <td><span class="badge" :class="u.is_active ? 'badge-entry' : 'badge-exit'">{{ u.is_active ? 'Active' : 'Disabled' }}</span></td>
+                                <td>{{ u.expire_at ? new Date(u.expire_at).toLocaleDateString() : 'Never' }}</td>
+                                <td>
+                                    <div style="display:flex; gap:0.5rem">
+                                        <button class="btn btn-sm" @click="showQRCode(u)" title="QR Code">
+                                            <ion-icon name="qr-code-outline"></ion-icon>
+                                        </button>
+                                        <button class="btn btn-sm" @click="copySubLink(u)" title="Copy Sub Link">
+                                            <ion-icon name="copy-outline"></ion-icon>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" @click="deleteUser(u.id)">
+                                            <ion-icon name="trash-outline"></ion-icon>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SETTINGS TAB -->
+            <div v-show="currentTab === 'settings'" class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">System Settings</div>
+                    <button class="btn" @click="saveSettings"><ion-icon name="save-outline"></ion-icon> Save</button>
+                </div>
+                <div class="panel-body" style="padding: 1.5rem">
                     <div class="form-group">
-                        <label>Loop Interval (seconds)</label>
+                        <label>Loop Interval (s)</label>
                         <input type="number" v-model="settings.loop_interval" class="form-control">
                     </div>
-                    <div class="form-group">
-                        <label>Switch Cooldown (seconds)</label>
-                        <input type="number" v-model="settings.cooldown_sec" class="form-control">
-                    </div>
                 </div>
-                <h4 style="margin: 1.5rem 0 1rem; color: var(--text-muted);">Anti-DPI Jitter (MS)</h4>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Min Jitter</label>
-                        <input type="number" v-if="settings.anti_dpi" v-model="settings.anti_dpi.min_jitter_ms" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Max Jitter</label>
-                        <input type="number" v-if="settings.anti_dpi" v-model="settings.anti_dpi.max_jitter_ms" class="form-control">
-                    </div>
-                </div>
-                <h4 style="margin: 1.5rem 0 1rem; color: var(--text-muted);">Node Scoring Weights</h4>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Latency Weight</label>
-                        <input type="number" step="0.1" v-if="settings.scoring_weights" v-model="settings.scoring_weights.latency" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Loss Weight</label>
-                        <input type="number" step="0.1" v-if="settings.scoring_weights" v-model="settings.scoring_weights.packet_loss" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Throughput Weight</label>
-                        <input type="number" step="0.1" v-if="settings.scoring_weights" v-model="settings.scoring_weights.throughput" class="form-control">
-                    </div>
+            </div>
+        </main>
+
+        <!-- ADD NODE MODAL -->
+        <div class="modal-overlay" v-if="showNodeModal" @click.self="showNodeModal = false">
+            <div class="modal">
+                <div class="modal-header"><h3>Add Server Node</h3></div>
+                <div class="modal-body">
+                    <form @submit.prevent="submitNode">
+                        <div class="form-row">
+                            <div class="form-group"><label>Name</label><input v-model="form.name" class="form-control" required></div>
+                            <div class="form-group"><label>IP</label><input v-model="form.ip" class="form-control" required></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Port</label><input type="number" v-model="form.port" class="form-control" required></div>
+                            <div class="form-group">
+                                <label>Protocol</label>
+                                <select v-model="form.protocol" class="form-control">
+                                    <option value="vless">VLESS</option>
+                                    <option value="trojan">Trojan</option>
+                                    <option value="shadowsocks">Shadowsocks</option>
+                                    <option value="hysteria2">Hysteria2</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="advanced-section" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 0.5rem; color: var(--accent-primary);">Advanced / Reality Settings</h4>
+                            <div class="form-group">
+                                <label>Reality Public Key</label>
+                                <input v-model="form.reality_public_key" class="form-control" placeholder="Optional">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Reality Short ID</label>
+                                    <input v-model="form.reality_short_id" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>SNI / Dest</label>
+                                    <input v-model="form.reality_sni" class="form-control">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>TLS Fragmentation (e.g. 10-500)</label>
+                                <input v-model="form.tls_fragment" class="form-control" placeholder="min-max">
+                            </div>
+
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label style="display: block; margin-bottom: 0.5rem;">Allowed Traffic</label>
+                                <div style="display: flex; gap: 1rem;">
+                                    <label><input type="checkbox" v-model="form.allow_streaming"> Streaming</label>
+                                    <label><input type="checkbox" v-model="form.allow_gaming"> Gaming</label>
+                                    <label><input type="checkbox" v-model="form.allow_browsing"> Browsing</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top: 1.5rem;">
+                            <button type="button" class="btn" style="background:transparent; border:1px solid var(--border-color)" @click="showNodeModal = false">Cancel</button>
+                            <button type="submit" class="btn">Save Node</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
 
-    </main>
-
-    <!-- Add Node Modal -->
-    <div class="modal-overlay" v-if="showNodeModal" @click.self="showNodeModal = false">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>Add New Server Node</h3>
-            </div>
-            <div class="modal-body">
-                <form @submit.prevent="submitNode">
-                    <div class="form-row">
+        <!-- USER MODAL -->
+        <div class="modal-overlay" v-if="showUserModal" @click.self="showUserModal = false">
+             <div class="modal">
+                <div class="modal-header"><h3>Add VPN User</h3></div>
+                <div class="modal-body">
+                    <form @submit.prevent="submitUser">
                         <div class="form-group">
-                            <label>Name</label>
-                            <input type="text" v-model="form.name" class="form-control" required placeholder="e.g. Frankfurt 1">
+                            <label>Username</label>
+                            <input v-model="userForm.username" class="form-control" required>
                         </div>
-                        <div class="form-group">
-                            <label>Location</label>
-                            <input type="text" v-model="form.location" class="form-control" placeholder="DE">
+                        <div class="form-row">
+                            <div class="form-group"><label>Limit (GB)</label><input type="number" v-model="userForm.data_limit_gb" class="form-control"></div>
+                            <div class="form-group"><label>Expiry</label><input type="date" v-model="userForm.expire_at" class="form-control"></div>
                         </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>IP Address</label>
-                            <input type="text" v-model="form.ip" class="form-control" required placeholder="192.168.1.1">
+                        <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top: 1rem;">
+                            <button type="button" class="btn" @click="showUserModal = false">Cancel</button>
+                            <button type="submit" class="btn">Create</button>
                         </div>
-                        <div class="form-group">
-                            <label>Port</label>
-                            <input type="number" v-model="form.port" class="form-control" required value="443">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Role</label>
-                            <select v-model="form.role" class="form-control">
-                                <option value="master">Master</option>
-                                <option value="slave">Slave</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Type</label>
-                            <select v-model="form.node_type" class="form-control">
-                                <option value="entry">Entry</option>
-                                <option value="relay">Relay</option>
-                                <option value="exit">Exit</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Bandwidth (Mbps)</label>
-                            <input type="number" v-model="form.bandwidth_mbps" class="form-control" value="1000">
-                        </div>
-                        <div class="form-group">
-                            <label>Transport</label>
-                            <select v-model="form.transport" class="form-control">
-                                <option value="quic">QUIC</option>
-                                <option value="tcp">TCP</option>
-                                <option value="ws">WebSocket</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top: 1rem;">
-                        <button type="button" class="btn" style="background:transparent; border:1px solid var(--border-color)" @click="showNodeModal = false">Cancel</button>
-                        <button type="submit" class="btn">Save Node</button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Add User Modal -->
-    <div class="modal-overlay" v-if="showUserModal" @click.self="showUserModal = false">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>Add VPN User</h3>
-            </div>
-            <div class="modal-body">
-                <form @submit.prevent="submitUser">
-                    <div class="form-group">
-                        <label>Username (used for Mieru/Trojan)</label>
-                        <input type="text" v-model="userForm.username" class="form-control" required placeholder="john_doe">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Data Limit (GB)</label>
-                            <input type="number" step="0.1" v-model="userForm.data_limit_gb" class="form-control" placeholder="Unlimited">
-                        </div>
-                        <div class="form-group">
-                            <label>Speed Limit (Mbps)</label>
-                            <input type="number" step="1" v-model="userForm.speed_limit_mbps" class="form-control" placeholder="Unlimited">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Expiration Date</label>
-                        <input type="date" v-model="userForm.expire_at" class="form-control">
-                    </div>
-                    <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top: 1rem;">
-                        <button type="button" class="btn" style="background:transparent; border:1px solid var(--border-color)" @click="showUserModal = false">Cancel</button>
-                        <button type="submit" class="btn">Create User</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- QR Code Modal -->
-    <div class="modal-overlay" v-if="qrCodeData" @click.self="qrCodeData = null">
-        <div class="modal" style="text-align: center; max-width: 400px; padding-bottom: 2rem;">
-            <div class="modal-header">
-                <h3>Scan to Connect</h3>
-            </div>
-            <div class="modal-body" style="display:flex; flex-direction:column; align-items:center;">
-                <div id="qrcode" style="background: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;"></div>
-                <p style="color:var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem; word-break: break-all; text-align: left; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 0.5rem; max-height:100px; overflow-y:auto;">
+        <!-- QR MODAL -->
+        <div class="modal-overlay" v-if="qrCodeData" @click.self="qrCodeData = null">
+            <div class="modal" style="max-width: 400px; text-align: center; padding: 1.5rem;">
+                <h3>Connection Config</h3>
+                <div id="qrcode" style="background: white; padding: 1rem; border-radius: 0.5rem; display: inline-block; margin: 1rem 0;"></div>
+                <div style="word-break: break-all; font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 0.5rem;">
                     {{ qrCodeData }}
-                </p>
-                <div style="display:flex; gap: 1rem;">
-                    <button class="btn" @click="copyToClipboard(qrCodeData)">
-                        <ion-icon name="copy-outline"></ion-icon> Copy Link
-                    </button>
-                    <button class="btn" style="background:transparent; border:1px solid var(--border-color)" @click="qrCodeData = null">Close</button>
                 </div>
+                <button class="btn" style="margin-top: 1rem; width: 100%;" @click="qrCodeData = null">Close</button>
             </div>
         </div>
-    </div>
-    </div><!-- Close #app -->
+
+    </div><!-- #app -->
 
     <script src="js/app.js"></script>
 </body>

@@ -74,8 +74,36 @@ async def init_db() -> None:
     Called once during application startup via the FastAPI lifespan hook.
     """
     async with engine.begin() as conn:
-        from backend.models import Node, Route, MetricRecord, ClientUser  # noqa: F401
+        from backend.models import Node, Route, MetricRecord, ClientUser, NodeType, NodeRole  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
+
+    # Auto-register master node if empty
+    async with async_session() as session:
+        from sqlalchemy import select
+        from backend.models import Node, NodeType, NodeRole
+        import uuid
+        import socket
+
+        res = await session.execute(select(Node))
+        if not res.scalars().first():
+            # Get local IP
+            try:
+                hostname = socket.gethostname()
+                ip = socket.gethostbyname(hostname)
+            except:
+                ip = "127.0.0.1"
+            
+            master = Node(
+                id=str(uuid.uuid4()),
+                name="Local Master",
+                ip=ip,
+                port=8000,
+                node_type=NodeType.ENTRY,
+                role=NodeRole.MASTER,
+                is_active=True
+            )
+            session.add(master)
+            await session.commit()
 
 
 async def close_db() -> None:

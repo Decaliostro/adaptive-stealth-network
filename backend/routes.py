@@ -118,6 +118,10 @@ async def create_node(
         transport=TransportType(body.transport),
         protocol=body.protocol,
         tls_enabled=body.tls_enabled,
+        reality_public_key=body.reality_public_key,
+        reality_short_id=body.reality_short_id,
+        reality_sni=body.reality_sni,
+        tls_fragment=body.tls_fragment,
     )
     db.add(node)
     await db.flush()
