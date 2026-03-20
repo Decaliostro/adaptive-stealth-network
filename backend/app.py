@@ -82,28 +82,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API router
+# Include API router only once
 app.include_router(router)
-
 
 import os
-
-# Include API router
-app.include_router(router)
+from pathlib import Path
 
 # Serve Frontend Management Panel
-frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
-if os.path.exists(frontend_dir):
+# Use absolute paths to avoid issues with current working directory in Docker
+BASE_DIR = Path(__file__).resolve().parent.parent
+frontend_dir = BASE_DIR / "frontend"
+
+logger.info(f"Checking for frontend directory at: {frontend_dir}")
+
+if frontend_dir.exists() and frontend_dir.is_dir():
     from fastapi.staticfiles import StaticFiles
+    logger.info("✅ Frontend directory found. Mounting static files.")
     # Mount the frontend directory on root. It exposes index.html automatically.
-    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
 else:
+    logger.warning("❌ Frontend directory NOT found or missing. Running in API-only mode.")
     @app.get("/", tags=["root"])
     async def root() -> dict:
-        """Root endpoint with a welcome message."""
+        """Root endpoint with a welcome message when UI is missing."""
         return {
             "name": "Adaptive Stealth Network",
             "version": "1.0.0",
             "docs": "/docs",
             "frontend_status": "Not built or missing",
+            "searched_path": str(frontend_dir)
         }
