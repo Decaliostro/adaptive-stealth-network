@@ -23,7 +23,7 @@ import asyncio
 import logging
 import signal
 import sys
-from typing import Optional
+from typing import Any, Optional
 
 import httpx
 import yaml
@@ -51,7 +51,7 @@ logger = logging.getLogger("asn.controller.main")
 # ---------------------------------------------------------------------------
 # Settings loader
 # ---------------------------------------------------------------------------
-def load_settings(path: str = "config/settings.yaml") -> dict:
+def load_settings(path: str = "config/settings.yaml") -> dict[str, Any]:
     """
     Load controller settings from YAML file.
 
@@ -61,7 +61,7 @@ def load_settings(path: str = "config/settings.yaml") -> dict:
     Returns:
         Settings dict with defaults for missing keys.
     """
-    defaults = {
+    defaults: dict[str, Any] = {
         "backend_url": "http://127.0.0.1:8000",
         "loop_interval": 5,
         "scoring_weights": {
@@ -80,7 +80,7 @@ def load_settings(path: str = "config/settings.yaml") -> dict:
 
     try:
         with open(path, "r") as f:
-            loaded = yaml.safe_load(f) or {}
+            loaded: dict[str, Any] = yaml.safe_load(f) or {}
         # Merge loaded over defaults
         for key, value in loaded.items():
             if isinstance(value, dict) and key in defaults and isinstance(defaults[key], dict):

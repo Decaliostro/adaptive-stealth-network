@@ -1,0 +1,8 @@
+{
+  "venvPath": ".",
+  "venv": "venv",
+  "root": ".",
+  "extraPaths": ["."],
+  "reportMissingImports": false,
+  "pythonVersion": "3.11"
+}

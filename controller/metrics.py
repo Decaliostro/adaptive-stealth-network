@@ -97,7 +97,7 @@ async def measure_latency(
             writer.close()
             await writer.wait_closed()
         except (asyncio.TimeoutError, OSError):
-            failures += 1
+            failures = failures + 1
         # Small delay between samples to avoid triggering DPI
         await asyncio.sleep(random.uniform(0.05, 0.15))
 
@@ -105,7 +105,7 @@ async def measure_latency(
         return 0.0, False
 
     avg_latency = sum(latencies) / len(latencies)
-    return round(avg_latency, 2), True
+    return float(round(avg_latency, 2)), True
 
 
 async def measure_packet_loss(
@@ -136,13 +136,13 @@ async def measure_packet_loss(
             )
             writer.close()
             await writer.wait_closed()
-            successes += 1
+            successes = successes + 1
         except (asyncio.TimeoutError, OSError):
             pass
         await asyncio.sleep(random.uniform(0.02, 0.08))
 
-    loss = ((count - successes) / count) * 100
-    return round(loss, 1)
+    loss: float = ((count - successes) / count) * 100
+    return float(round(loss, 1))
 
 
 async def measure_throughput(
@@ -199,7 +199,7 @@ async def measure_throughput(
         return 0.0
 
     throughput_mbps = (total_bytes * 8) / (elapsed * 1_000_000)
-    return round(throughput_mbps, 2)
+    return float(round(throughput_mbps, 2))
 
 
 async def measure_node(

@@ -305,13 +305,14 @@ class SingboxManager:
 
     def stop(self) -> None:
         """Stop the running Sing-box process."""
-        if self.process and self.process.poll() is None:
-            logger.info("Stopping Sing-box (PID=%d)", self.process.pid)
-            self.process.terminate()
+        proc = self.process
+        if proc is not None and proc.poll() is None:
+            logger.info("Stopping Sing-box (PID=%d)", proc.pid)
+            proc.terminate()
             try:
-                self.process.wait(timeout=5)
+                proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                self.process.kill()
+                proc.kill()
             self.process = None
 
     def get_status(self) -> dict:
@@ -321,10 +322,11 @@ class SingboxManager:
         Returns:
             Dict with ``running``, ``pid``, and ``config_path`` keys.
         """
-        running = self.process is not None and self.process.poll() is None
+        proc = self.process
+        running = proc is not None and proc.poll() is None
         return {
             "running": running,
-            "pid": self.process.pid if running else None,
+            "pid": proc.pid if proc is not None and running else None,
             "config_path": str(self._current_config_path) if self._current_config_path else None,
         }
 
@@ -335,10 +337,11 @@ class SingboxManager:
         Returns:
             True if signal was sent successfully.
         """
-        if self.process and self.process.poll() is None:
+        proc = self.process
+        if proc is not None and proc.poll() is None:
             try:
-                os.kill(self.process.pid, signal.SIGHUP)
-                logger.info("Sent SIGHUP to Sing-box (PID=%d)", self.process.pid)
+                os.kill(proc.pid, signal.SIGHUP)
+                logger.info("Sent SIGHUP to Sing-box (PID=%d)", proc.pid)
                 return True
             except OSError as exc:
                 logger.error("Failed to reload: %s", exc)

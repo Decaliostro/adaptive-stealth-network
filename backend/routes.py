@@ -303,7 +303,7 @@ async def generate_routes(
             routes.append(route)
 
     # Limit
-    routes = routes[: body.max_routes]
+    routes = list(routes[: body.max_routes])
     await db.flush()
 
     # Refresh all routes
