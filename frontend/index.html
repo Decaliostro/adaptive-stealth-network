@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/style.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body id="app" v-cloak>
 
@@ -31,6 +32,12 @@
             </div>
             <div class="nav-item" :class="{active: currentTab === 'metrics'}" @click="currentTab = 'metrics'">
                 <ion-icon name="pulse-outline"></ion-icon> Network Metrics
+            </div>
+            <div class="nav-item" :class="{active: currentTab === 'users'}" @click="currentTab = 'users'">
+                <ion-icon name="people-outline"></ion-icon> VPN Users
+            </div>
+            <div class="nav-item" :class="{active: currentTab === 'settings'}" @click="currentTab = 'settings'">
+                <ion-icon name="settings-outline"></ion-icon> System Settings
             </div>
         </nav>
     </aside>
@@ -186,6 +193,115 @@
             </div>
         </div>
 
+        <!-- USERS TAB -->
+        <div v-show="currentTab === 'users'" class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Client Subscriptions</div>
+                <button class="btn" @click="showUserModal = true">
+                    <ion-icon name="person-add"></ion-icon> Add User
+                </button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Data Usage</th>
+                            <th>Speed Limit</th>
+                            <th>Status</th>
+                            <th>Expiry</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="u in users" :key="u.id">
+                            <td>
+                                <strong>{{ u.username }}</strong><br>
+                                <small style="color:var(--text-muted)">{{ u.client_uuid.split('-')[0] }}...</small>
+                            </td>
+                            <td>
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size: 0.75rem;">
+                                    <span>{{ (u.data_used_bytes / (1024*1024*1024)).toFixed(2) }} GB</span>
+                                    <span>{{ u.data_limit_gb ? u.data_limit_gb + ' GB' : '∞' }}</span>
+                                </div>
+                                <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                    <div :style="{ width: u.data_limit_gb ? Math.min(100, (u.data_used_bytes/(1024*1024*1024) / u.data_limit_gb * 100)) + '%' : '0%', background: 'var(--accent-primary)', height: '100%' }"></div>
+                                </div>
+                            </td>
+                            <td>{{ u.speed_limit_mbps ? u.speed_limit_mbps + ' Mbps' : '∞' }}</td>
+                            <td>
+                                <span class="badge" :class="u.is_active ? 'badge-entry' : 'badge-exit'">
+                                    {{ u.is_active ? 'Active' : 'Disabled' }}
+                                </span>
+                            </td>
+                            <td>{{ u.expire_at ? new Date(u.expire_at).toLocaleDateString() : 'Never' }}</td>
+                            <td>
+                                <div style="display:flex; gap:0.5rem">
+                                    <button class="btn" style="padding: 0.4rem 0.6rem; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59,130,246,0.3);" @click="showQRCode(u)">
+                                        <ion-icon name="qr-code"></ion-icon>
+                                    </button>
+                                    <button class="btn btn-danger" style="padding: 0.4rem 0.6rem;" @click="deleteUser(u.id)">
+                                        <ion-icon name="trash"></ion-icon>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr v-if="users.length === 0">
+                            <td colspan="6" style="text-align:center; color:var(--text-muted)">No users found. Create one to get started.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div v-show="currentTab === 'settings'" class="panel">
+            <div class="panel-header">
+                <div class="panel-title">System Settings</div>
+                <button class="btn" @click="saveSettings">
+                    <ion-icon name="save"></ion-icon> Save Configuration
+                </button>
+            </div>
+            <div class="panel-body" style="padding: 1.5rem">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Loop Interval (seconds)</label>
+                        <input type="number" v-model="settings.loop_interval" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Switch Cooldown (seconds)</label>
+                        <input type="number" v-model="settings.cooldown_sec" class="form-control">
+                    </div>
+                </div>
+                <h4 style="margin: 1.5rem 0 1rem; color: var(--text-muted);">Anti-DPI Jitter (MS)</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Min Jitter</label>
+                        <input type="number" v-if="settings.anti_dpi" v-model="settings.anti_dpi.min_jitter_ms" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Max Jitter</label>
+                        <input type="number" v-if="settings.anti_dpi" v-model="settings.anti_dpi.max_jitter_ms" class="form-control">
+                    </div>
+                </div>
+                <h4 style="margin: 1.5rem 0 1rem; color: var(--text-muted);">Node Scoring Weights</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Latency Weight</label>
+                        <input type="number" step="0.1" v-if="settings.scoring_weights" v-model="settings.scoring_weights.latency" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Loss Weight</label>
+                        <input type="number" step="0.1" v-if="settings.scoring_weights" v-model="settings.scoring_weights.packet_loss" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Throughput Weight</label>
+                        <input type="number" step="0.1" v-if="settings.scoring_weights" v-model="settings.scoring_weights.throughput" class="form-control">
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Add Node Modal -->
@@ -252,6 +368,62 @@
                         <button type="submit" class="btn">Save Node</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div class="modal-overlay" v-if="showUserModal" @click.self="showUserModal = false">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add VPN User</h3>
+            </div>
+            <div class="modal-body">
+                <form @submit.prevent="submitUser">
+                    <div class="form-group">
+                        <label>Username (used for Mieru/Trojan)</label>
+                        <input type="text" v-model="userForm.username" class="form-control" required placeholder="john_doe">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Data Limit (GB)</label>
+                            <input type="number" step="0.1" v-model="userForm.data_limit_gb" class="form-control" placeholder="Unlimited">
+                        </div>
+                        <div class="form-group">
+                            <label>Speed Limit (Mbps)</label>
+                            <input type="number" step="1" v-model="userForm.speed_limit_mbps" class="form-control" placeholder="Unlimited">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Expiration Date</label>
+                        <input type="date" v-model="userForm.expire_at" class="form-control">
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top: 1rem;">
+                        <button type="button" class="btn" style="background:transparent; border:1px solid var(--border-color)" @click="showUserModal = false">Cancel</button>
+                        <button type="submit" class="btn">Create User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div class="modal-overlay" v-if="qrCodeData" @click.self="qrCodeData = null">
+        <div class="modal" style="text-align: center; max-width: 400px; padding-bottom: 2rem;">
+            <div class="modal-header">
+                <h3>Scan to Connect</h3>
+            </div>
+            <div class="modal-body" style="display:flex; flex-direction:column; align-items:center;">
+                <div id="qrcode" style="background: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;"></div>
+                <p style="color:var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem; word-break: break-all; text-align: left; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 0.5rem; max-height:100px; overflow-y:auto;">
+                    {{ qrCodeData }}
+                </p>
+                <div style="display:flex; gap: 1rem;">
+                    <button class="btn" @click="copyToClipboard(qrCodeData)">
+                        <ion-icon name="copy-outline"></ion-icon> Copy Link
+                    </button>
+                    <button class="btn" style="background:transparent; border:1px solid var(--border-color)" @click="qrCodeData = null">Close</button>
+                </div>
             </div>
         </div>
     </div>

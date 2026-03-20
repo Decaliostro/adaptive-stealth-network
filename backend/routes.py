@@ -19,6 +19,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 import base64
 import json
+import yaml
+from pathlib import Path
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -537,6 +539,38 @@ async def get_subscription(
 
     raw_sub = "\n".join(lines)
     return base64.b64encode(raw_sub.encode('utf-8')).decode('utf-8')
+
+
+# ====================================================================
+# Settings
+# ====================================================================
+
+SETTINGS_PATH = Path("config/settings.yaml")
+
+@router.get("/settings")
+async def get_settings() -> dict:
+    """Read global settings from YAML."""
+    if not SETTINGS_PATH.exists():
+        return {}
+    with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+@router.patch("/settings")
+async def update_settings(body: dict) -> dict:
+    """Partially update settings and write to YAML."""
+    data = {}
+    if SETTINGS_PATH.exists():
+        with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+            
+    # Deep update can be complex, simplifying with raw dict update
+    data.update(body)
+    
+    SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+        yaml.safe_dump(data, f, default_flow_style=False)
+        
+    return data
 
 
 # ====================================================================
