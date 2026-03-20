@@ -83,7 +83,7 @@ async def measure_latency(
         Tuple of (average_latency_ms, is_reachable).
     """
     latencies: list[float] = []
-    failures = 0
+    failures: int = 0
 
     for _ in range(samples):
         start = time.monotonic()
@@ -97,15 +97,15 @@ async def measure_latency(
             writer.close()
             await writer.wait_closed()
         except (asyncio.TimeoutError, OSError):
-            failures = failures + 1
+            failures += 1  # type: ignore
         # Small delay between samples to avoid triggering DPI
         await asyncio.sleep(random.uniform(0.05, 0.15))
 
     if not latencies:
         return 0.0, False
 
-    avg_latency = sum(latencies) / len(latencies)
-    return float(round(avg_latency, 2)), True
+    avg_latency = float(sum(latencies)) / len(latencies)
+    return float(round(float(avg_latency), 2)), True
 
 
 async def measure_packet_loss(
@@ -126,7 +126,7 @@ async def measure_packet_loss(
     Returns:
         Packet loss as a percentage (0–100).
     """
-    successes = 0
+    successes: int = 0
 
     for _ in range(count):
         try:
@@ -136,13 +136,12 @@ async def measure_packet_loss(
             )
             writer.close()
             await writer.wait_closed()
-            successes = successes + 1
         except (asyncio.TimeoutError, OSError):
             pass
         await asyncio.sleep(random.uniform(0.02, 0.08))
 
-    loss: float = ((count - successes) / count) * 100
-    return float(round(loss, 1))
+    loss: float = (float(count - successes) / float(count)) * 100.0
+    return float(round(float(loss), 1))
 
 
 async def measure_throughput(
@@ -198,8 +197,8 @@ async def measure_throughput(
     if elapsed == 0:
         return 0.0
 
-    throughput_mbps = (total_bytes * 8) / (elapsed * 1_000_000)
-    return float(round(throughput_mbps, 2))
+    throughput_mbps = (float(total_bytes) * 8.0) / (elapsed * 1_000_000.0)
+    return float(round(float(throughput_mbps), 2))
 
 
 async def measure_node(

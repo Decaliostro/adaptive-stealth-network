@@ -86,11 +86,24 @@ app.add_middleware(
 app.include_router(router)
 
 
-@app.get("/", tags=["root"])
-async def root() -> dict:
-    """Root endpoint with a welcome message."""
-    return {
-        "name": "Adaptive Stealth Network",
-        "version": "1.0.0",
-        "docs": "/docs",
-    }
+import os
+
+# Include API router
+app.include_router(router)
+
+# Serve Frontend Management Panel
+frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+if os.path.exists(frontend_dir):
+    from fastapi.staticfiles import StaticFiles
+    # Mount the frontend directory on root. It exposes index.html automatically.
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
+else:
+    @app.get("/", tags=["root"])
+    async def root() -> dict:
+        """Root endpoint with a welcome message."""
+        return {
+            "name": "Adaptive Stealth Network",
+            "version": "1.0.0",
+            "docs": "/docs",
+            "frontend_status": "Not built or missing",
+        }

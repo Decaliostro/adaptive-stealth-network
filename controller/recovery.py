@@ -164,9 +164,9 @@ class RouteRecovery:
                 break
 
             if asyncio.iscoroutinefunction(get_blocked_routes):
-                blocked: list[tuple] = await get_blocked_routes()
+                blocked: list[tuple] = await get_blocked_routes()  # type: ignore
             else:
-                blocked = get_blocked_routes()
+                blocked: list[tuple] = get_blocked_routes()  # type: ignore
 
             if not blocked:
                 logger.debug("No blocked routes to recover")

@@ -51,7 +51,7 @@ async def _ping_node(host: str, port: int, timeout: float = 5.0) -> dict:
         writer.close()
         await writer.wait_closed()
         return {
-            "latency_ms": float(round(elapsed, 2)),
+            "latency_ms": float(round(float(elapsed), 2)),
             "packet_loss_percent": 0.0,
             "success": True,
         }
@@ -59,7 +59,7 @@ async def _ping_node(host: str, port: int, timeout: float = 5.0) -> dict:
         elapsed = (time.monotonic() - start) * 1000
         logger.warning("Ping failed for %s:%d — %s", host, port, exc)
         return {
-            "latency_ms": float(round(elapsed, 2)),
+            "latency_ms": float(round(float(elapsed), 2)),
             "packet_loss_percent": 100.0,
             "success": False,
         }

@@ -287,9 +287,10 @@ class SingboxManager:
                 stderr=subprocess.PIPE,
             )
             self._current_config_path = path
+            pid = self.process.pid if self.process else -1
             logger.info(
                 "✅ Sing-box started (PID=%d) with config %s",
-                self.process.pid, path,
+                pid, path,
             )
             return True
         except FileNotFoundError:

@@ -82,11 +82,11 @@ def load_settings(path: str = "config/settings.yaml") -> dict[str, Any]:
         with open(path, "r") as f:
             loaded: dict[str, Any] = yaml.safe_load(f) or {}
         # Merge loaded over defaults
-        for key, value in loaded.items():
+        for key, value in loaded.items():  # type: ignore
             if isinstance(value, dict) and key in defaults and isinstance(defaults[key], dict):
-                defaults[key].update(value)
+                defaults[key].update(value)  # type: ignore
             else:
-                defaults[key] = value
+                defaults[key] = value  # type: ignore
         logger.info("Settings loaded from %s", path)
     except FileNotFoundError:
         logger.warning("Settings file %s not found, using defaults", path)

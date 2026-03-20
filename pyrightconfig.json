@@ -1,8 +1,7 @@
 {
-  "venvPath": ".",
+  "venvPath": "/Users/mikekinikhin/Documents/Adapptive_stealth_network",
   "venv": "venv",
-  "root": ".",
-  "extraPaths": ["."],
-  "reportMissingImports": false,
-  "pythonVersion": "3.11"
+  "extraPaths": [
+    "/Users/mikekinikhin/Documents/Adapptive_stealth_network"
+  ]
 }

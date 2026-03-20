@@ -90,7 +90,7 @@ def score_route(
         "Score: latency=%.1f loss=%.1f throughput=%.1f errors=%d → score=%.2f",
         latency_ms, packet_loss_percent, throughput_mbps, error_count, result,
     )
-    return float(round(result, 2))
+    return float(round(float(result), 2))
 
 
 def rank_routes(

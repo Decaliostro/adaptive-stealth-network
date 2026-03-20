@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASN Management Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body id="app" v-cloak>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="brand">
+            <ion-icon name="shield-half-outline" style="vertical-align: middle;"></ion-icon> 
+            ASN Panel
+        </div>
+        <nav class="nav-menu">
+            <div class="nav-item" :class="{active: currentTab === 'dashboard'}" @click="currentTab = 'dashboard'">
+                <ion-icon name="grid-outline"></ion-icon> Dashboard
+            </div>
+            <div class="nav-item" :class="{active: currentTab === 'nodes'}" @click="currentTab = 'nodes'">
+                <ion-icon name="server-outline"></ion-icon> Nodes (Servers)
+            </div>
+            <div class="nav-item" :class="{active: currentTab === 'routes'}" @click="currentTab = 'routes'">
+                <ion-icon name="git-network-outline"></ion-icon> Route Paths
+            </div>
+            <div class="nav-item" :class="{active: currentTab === 'metrics'}" @click="currentTab = 'metrics'">
+                <ion-icon name="pulse-outline"></ion-icon> Network Metrics
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main View -->
+    <main class="main-content">
+        <header>
+            <h1>{{ tabTitle }}</h1>
+            <div class="status-badge" :class="{offline: !health.ok}">
+                {{ health.ok ? 'Network Active' : 'Backend Offline' }}
+            </div>
+        </header>
+
+        <!-- DASHBOARD TAB -->
+        <div v-show="currentTab === 'dashboard'">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Total Nodes</div>
+                    <div class="stat-value">{{ nodes.length }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Active Routes</div>
+                    <div class="stat-value">{{ routes.length }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Latest Metrics Recorded</div>
+                    <div class="stat-value">{{ metrics.length }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NODES TAB -->
+        <div v-show="currentTab === 'nodes'" class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Server Nodes</div>
+                <button class="btn" @click="showNodeModal = true">
+                    <ion-icon name="add"></ion-icon> Add Node
+                </button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>IP : Port</th>
+                            <th>Role</th>
+                            <th>Type</th>
+                            <th>Bandwidth</th>
+                            <th>Active</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="node in nodes" :key="node.id">
+                            <td><strong>{{ node.name }}</strong><br><small style="color:var(--text-muted)">{{ node.location }}</small></td>
+                            <td>{{ node.ip }}:{{ node.port }}<br><small style="color:var(--text-muted)">{{ node.transport }}/{{ node.protocol }}</small></td>
+                            <td><span class="badge" :class="'badge-' + node.role">{{ node.role }}</span></td>
+                            <td><span class="badge" :class="'badge-' + node.node_type">{{ node.node_type }}</span></td>
+                            <td>{{ node.bandwidth_mbps }} Mbps</td>
+                            <td>
+                                <label class="switch">
+                                    <input type="checkbox" :checked="node.is_active" @change="toggleNodeState(node)">
+                                    <span class="slider"></span>
+                                </label>
+                            </td>
+                            <td>
+                                <button class="btn btn-danger" @click="deleteNode(node.id)" style="padding: 0.4rem 0.6rem;">
+                                    <ion-icon name="trash"></ion-icon>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr v-if="nodes.length === 0">
+                            <td colspan="7" style="text-align:center; color:var(--text-muted)">No nodes found. Create one.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ROUTES TAB -->
+        <div v-show="currentTab === 'routes'" class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Calculated Routes</div>
+                <button class="btn" @click="generateRoutes">
+                    <ion-icon name="git-merge"></ion-icon> Auto-Generate Routes
+                </button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Hop Chain</th>
+                            <th>Type</th>
+                            <th>Score</th>
+                            <th>State</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="route in routes" :key="route.id">
+                            <td>
+                                {{ getNodeName(route.entry_node_id) }} 
+                                <span v-if="route.relay_node_id"> → {{ getNodeName(route.relay_node_id) }}</span> 
+                                → {{ getNodeName(route.exit_node_id) }}
+                            </td>
+                            <td>{{ route.is_single_node ? 'Single' : 'Multi-hop' }}</td>
+                            <td>{{ route.score.toFixed(2) }}</td>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:0.5rem">
+                                    <span style="font-size:1.5rem; color:var(--accent-success)" v-if="route.state=='healthy'">•</span>
+                                    <span style="font-size:1.5rem; color:var(--accent-danger)" v-if="route.state=='blocked'">•</span>
+                                    <span style="font-size:1.5rem; color:var(--accent-warning)" v-if="route.state=='degraded'">•</span>
+                                    {{ route.state.toUpperCase() }}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr v-if="routes.length === 0">
+                            <td colspan="4" style="text-align:center; color:var(--text-muted)">No routes calculated yet.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- METRICS TAB -->
+        <div v-show="currentTab === 'metrics'" class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Recent Metric Pings</div>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Target</th>
+                            <th>Latency</th>
+                            <th>Loss %</th>
+                            <th>Errors</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="metric in metrics" :key="metric.id">
+                            <td>{{ new Date(metric.recorded_at).toLocaleTimeString() }}</td>
+                            <td>
+                                <span v-if="metric.node_id">Node: {{ getNodeName(metric.node_id) }}</span>
+                                <span v-if="metric.route_id">Route: {{ metric.route_id.split('-')[0] }}</span>
+                            </td>
+                            <td>{{ metric.latency_ms }} ms</td>
+                            <td>{{ metric.packet_loss_percent }}%</td>
+                            <td :style="{color: metric.error_count > 0 ? 'var(--accent-danger)' : ''}">{{ metric.error_count }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Add Node Modal -->
+    <div class="modal-overlay" v-if="showNodeModal" @click.self="showNodeModal = false">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add New Server Node</h3>
+            </div>
+            <div class="modal-body">
+                <form @submit.prevent="submitNode">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" v-model="form.name" class="form-control" required placeholder="e.g. Frankfurt 1">
+                        </div>
+                        <div class="form-group">
+                            <label>Location</label>
+                            <input type="text" v-model="form.location" class="form-control" placeholder="DE">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>IP Address</label>
+                            <input type="text" v-model="form.ip" class="form-control" required placeholder="192.168.1.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Port</label>
+                            <input type="number" v-model="form.port" class="form-control" required value="443">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select v-model="form.role" class="form-control">
+                                <option value="master">Master</option>
+                                <option value="slave">Slave</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select v-model="form.node_type" class="form-control">
+                                <option value="entry">Entry</option>
+                                <option value="relay">Relay</option>
+                                <option value="exit">Exit</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Bandwidth (Mbps)</label>
+                            <input type="number" v-model="form.bandwidth_mbps" class="form-control" value="1000">
+                        </div>
+                        <div class="form-group">
+                            <label>Transport</label>
+                            <select v-model="form.transport" class="form-control">
+                                <option value="quic">QUIC</option>
+                                <option value="tcp">TCP</option>
+                                <option value="ws">WebSocket</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top: 1rem;">
+                        <button type="button" class="btn" style="background:transparent; border:1px solid var(--border-color)" @click="showNodeModal = false">Cancel</button>
+                        <button type="submit" class="btn">Save Node</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
