@@ -29,18 +29,7 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: asn-tunnel
     restart: unless-stopped
-    environment:
-      - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
-    entrypoint: /bin/sh
-    command: >
-      -c "
-      if [ -z \"$$CLOUDFLARE_TUNNEL_TOKEN\" ]; then
-        echo '[*] No tunnel token provided. Starting Quick Tunnel...';
-        /usr/local/bin/cloudflared tunnel --url http://backend:8000;
-      else
-        echo '[*] Starting persistent tunnel with token...';
-        /usr/local/bin/cloudflared tunnel --no-autoupdate run --token $$CLOUDFLARE_TUNNEL_TOKEN;
-      fi"
+    command: tunnel --url http://backend:8000
     depends_on:
       - backend
 
